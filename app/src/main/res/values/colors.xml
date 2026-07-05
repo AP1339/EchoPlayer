@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- Primary -->
+    <color name="primary">#1ED760</color>
+
+    <!-- Background -->
+    <color name="background">#09090B</color>
+
+    <!-- Cards -->
+    <color name="card">#18181B</color>
+
+    <!-- Text -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A1A1AA</color>
+
+    <!-- Search -->
+    <color name="search_background">#242428</color>
+
+    <!-- Divider -->
+    <color name="divider">#2F2F35</color>
+
 </resources>
