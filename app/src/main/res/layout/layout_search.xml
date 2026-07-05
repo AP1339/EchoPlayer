@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="58dp"
+    android:layout_marginTop="28dp"
+    app:cardBackgroundColor="@color/search_background"
+    app:cardCornerRadius="29dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="@color/text_secondary"/>
+
+        <TextView
+            android:id="@+id/txtSearch"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:text="Search songs, artists..."
+            android:textColor="@color/text_secondary"
+            android:textSize="15sp"/>
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:tint="@color/primary"/>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
