@@ -3,11 +3,14 @@ package com.snehant.echoplayer.player;
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.snehant.echoplayer.models.Song;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class PlaybackManager implements MediaPlayer.OnCompletionListener {
@@ -17,9 +20,15 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
     private Context context;
     private MediaPlayer mediaPlayer;
     private List<Song> playlist = new ArrayList<>();
+    private List<Song> originalPlaylist = new ArrayList<>();
     private int currentIndex = -1;
     private boolean isPlaying = false;
+    private boolean isShuffle = false;
+    private boolean isRepeatAll = false;
+    private boolean isRepeatOne = false;
     private PlaybackListener listener;
+    private ProgressListener progressListener;
+    private Handler progressHandler = new Handler(Looper.getMainLooper());
 
     private PlaybackManager(Context context) {
         this.context = context.getApplicationContext();
@@ -43,7 +52,6 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 return;
             }
 
-            // Find song in playlist
             int index = playlist.indexOf(song);
             if (index == -1) {
                 playlist.add(song);
@@ -51,9 +59,7 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 Log.d(TAG, "Song added to playlist at index: " + index);
             }
 
-            // Check if this song is already the current song AND we're not in the middle of changing songs
             if (currentIndex == index && currentIndex >= 0 && mediaPlayer != null) {
-                // Same song, just resume if paused
                 if (!isPlaying) {
                     resume();
                 }
@@ -61,10 +67,8 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 return;
             }
 
-            // Update current index BEFORE preparing media
             currentIndex = index;
 
-            // Stop and reset media player
             try {
                 if (mediaPlayer.isPlaying()) {
                     mediaPlayer.stop();
@@ -72,12 +76,10 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 mediaPlayer.reset();
             } catch (Exception e) {
                 Log.e(TAG, "Error resetting mediaplayer: " + e.getMessage());
-                // Create new mediaplayer if reset fails
                 mediaPlayer = new MediaPlayer();
                 mediaPlayer.setOnCompletionListener(this);
             }
 
-            // Set new data source and prepare
             Log.d(TAG, "Setting data source for: " + song.getTitle());
             Log.d(TAG, "URI: " + song.getMediaUri());
 
@@ -87,11 +89,12 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
             isPlaying = true;
             Log.d(TAG, "Song started successfully: " + song.getTitle());
 
-            // Notify listener
             if (listener != null) {
                 listener.onSongChanged(song);
                 Log.d(TAG, "Listener notified of song change: " + song.getTitle());
             }
+
+            startProgressUpdates();
         } catch (Exception e) {
             Log.e(TAG, "Error playing song: " + e.getMessage());
             e.printStackTrace();
@@ -114,6 +117,9 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 mediaPlayer.pause();
                 isPlaying = false;
                 Log.d(TAG, "Paused successfully");
+                if (listener != null) {
+                    listener.onPlayStateChanged(false);
+                }
             } else {
                 Log.d(TAG, "MediaPlayer is not playing, ignoring pause");
             }
@@ -129,10 +135,12 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
                 mediaPlayer.start();
                 isPlaying = true;
                 Log.d(TAG, "Resumed successfully");
+                if (listener != null) {
+                    listener.onPlayStateChanged(true);
+                }
+                startProgressUpdates();
             } else {
-                Log.d(TAG, "Cannot resume - mediaPlayer: " + (mediaPlayer != null) +
-                        ", isPlaying: " + (mediaPlayer != null && mediaPlayer.isPlaying()) +
-                        ", currentIndex: " + currentIndex);
+                Log.d(TAG, "Cannot resume");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in resume: " + e.getMessage());
@@ -153,7 +161,6 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
             newIndex = playlist.size() - 1;
         }
 
-        // Set currentIndex to -1 temporarily to prevent the "same song" check from returning early
         currentIndex = -1;
         Log.d(TAG, "New index: " + newIndex + ", playing: " + playlist.get(newIndex).getTitle());
         play(playlist.get(newIndex));
@@ -166,14 +173,29 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
             return;
         }
 
+        if (isRepeatOne) {
+            // Repeat one - play same song
+            play(playlist.get(currentIndex));
+            return;
+        }
+
         int newIndex;
         if (currentIndex < playlist.size() - 1) {
             newIndex = currentIndex + 1;
         } else {
-            newIndex = 0;
+            if (isRepeatAll) {
+                newIndex = 0; // Repeat all
+            } else {
+                // No repeat, stop playback
+                currentIndex = -1;
+                isPlaying = false;
+                if (listener != null) {
+                    listener.onSongChanged(null);
+                }
+                return;
+            }
         }
 
-        // Set currentIndex to -1 temporarily to prevent the "same song" check from returning early
         currentIndex = -1;
         Log.d(TAG, "New index: " + newIndex + ", playing: " + playlist.get(newIndex).getTitle());
         play(playlist.get(newIndex));
@@ -192,8 +214,96 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
         }
     }
 
+    public void toggleShuffle() {
+        isShuffle = !isShuffle;
+        Log.d(TAG, "toggleShuffle: " + isShuffle);
+        if (isShuffle) {
+            originalPlaylist = new ArrayList<>(playlist);
+            Collections.shuffle(playlist);
+            currentIndex = -1;
+        } else {
+            if (!originalPlaylist.isEmpty()) {
+                playlist = new ArrayList<>(originalPlaylist);
+                currentIndex = -1;
+            }
+        }
+        if (listener != null) {
+            listener.onShuffleChanged(isShuffle);
+        }
+    }
+
+    public boolean isShuffle() {
+        return isShuffle;
+    }
+
+    public void toggleRepeatAll() {
+        isRepeatAll = !isRepeatAll;
+        if (isRepeatAll) {
+            isRepeatOne = false;
+        }
+        Log.d(TAG, "toggleRepeatAll: " + isRepeatAll);
+        if (listener != null) {
+            listener.onRepeatChanged(isRepeatAll ? 1 : 0);
+        }
+    }
+
+    public void toggleRepeatOne() {
+        isRepeatOne = !isRepeatOne;
+        if (isRepeatOne) {
+            isRepeatAll = false;
+        }
+        Log.d(TAG, "toggleRepeatOne: " + isRepeatOne);
+        if (listener != null) {
+            listener.onRepeatChanged(isRepeatOne ? 2 : 0);
+        }
+    }
+
+    public boolean isRepeatAll() {
+        return isRepeatAll;
+    }
+
+    public boolean isRepeatOne() {
+        return isRepeatOne;
+    }
+
+    public int getRepeatMode() {
+        if (isRepeatOne) return 2;
+        if (isRepeatAll) return 1;
+        return 0;
+    }
+
+    public void seekTo(int position) {
+        try {
+            if (mediaPlayer != null) {
+                mediaPlayer.seekTo(position);
+                Log.d(TAG, "Seeked to: " + position);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error seeking: " + e.getMessage());
+        }
+    }
+
+    public int getCurrentPosition() {
+        try {
+            return mediaPlayer != null ? mediaPlayer.getCurrentPosition() : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public int getDuration() {
+        try {
+            return mediaPlayer != null ? mediaPlayer.getDuration() : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     public void release() {
         Log.d(TAG, "release() called");
+        if (progressHandler != null) {
+            progressHandler.removeCallbacksAndMessages(null);
+        }
         if (mediaPlayer != null) {
             try {
                 mediaPlayer.release();
@@ -228,10 +338,12 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
         Log.d(TAG, "setPlaylist() called with " + (songs != null ? songs.size() : 0) + " songs");
         if (songs != null) {
             this.playlist = new ArrayList<>(songs);
+            this.originalPlaylist = new ArrayList<>(songs);
             this.currentIndex = -1;
             Log.d(TAG, "Playlist set, size: " + this.playlist.size());
         } else {
             this.playlist = new ArrayList<>();
+            this.originalPlaylist = new ArrayList<>();
             this.currentIndex = -1;
             Log.d(TAG, "Playlist set to empty");
         }
@@ -242,15 +354,53 @@ public class PlaybackManager implements MediaPlayer.OnCompletionListener {
         Log.d(TAG, "PlaybackListener set: " + (listener != null ? "not null" : "null"));
     }
 
+    public void setProgressListener(ProgressListener listener) {
+        this.progressListener = listener;
+        if (isPlaying) {
+            startProgressUpdates();
+        }
+    }
+
+    private void startProgressUpdates() {
+        progressHandler.removeCallbacksAndMessages(null);
+        progressHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (progressListener != null && mediaPlayer != null && isPlaying) {
+                    try {
+                        progressListener.onProgressUpdate(
+                                mediaPlayer.getCurrentPosition(),
+                                mediaPlayer.getDuration()
+                        );
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in progress update: " + e.getMessage());
+                    }
+                }
+                if (isPlaying) {
+                    progressHandler.postDelayed(this, 1000);
+                }
+            }
+        });
+    }
+
     @Override
     public void onCompletion(MediaPlayer mp) {
         Log.d(TAG, "onCompletion() called - song finished playing");
         isPlaying = false;
-        // Auto-play next song
+        if (listener != null) {
+            listener.onPlayStateChanged(false);
+        }
         next();
     }
 
     public interface PlaybackListener {
         void onSongChanged(Song song);
+        void onPlayStateChanged(boolean isPlaying);
+        void onShuffleChanged(boolean isShuffle);
+        void onRepeatChanged(int repeatMode);
+    }
+
+    public interface ProgressListener {
+        void onProgressUpdate(int currentPosition, int totalDuration);
     }
 }

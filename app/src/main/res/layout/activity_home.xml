@@ -13,7 +13,7 @@
         android:fillViewport="true"
         android:paddingHorizontal="20dp"
         android:paddingTop="16dp"
-        android:paddingBottom="100dp"
+        android:paddingBottom="90dp"
         android:clipToPadding="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -35,6 +35,9 @@
                 layout="@layout/layout_recent"/>
 
             <include
+                layout="@layout/layout_playlist"/>
+
+            <include
                 layout="@layout/layout_song_list"/>
 
             <include
@@ -45,15 +48,27 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <include
-        android:id="@+id/miniPlayer"
-        layout="@layout/layout_miniplayer"
+    <!-- Fixed MiniPlayer Container -->
+    <LinearLayout
+        android:id="@+id/miniPlayerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp"
+        android:orientation="vertical"
+        android:background="@color/background"
+        android:paddingBottom="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Mini Player -->
+        <include
+            android:id="@+id/miniPlayer"
+            layout="@layout/layout_miniplayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"/>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

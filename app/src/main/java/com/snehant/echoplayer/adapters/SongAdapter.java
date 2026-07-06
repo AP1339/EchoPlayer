@@ -33,7 +33,6 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         return new SongViewHolder(view);
     }
 
-
     @Override
     public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
         Song song = songs.get(position);
@@ -41,12 +40,10 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         holder.txtSongTitle.setText(song.getTitle());
         holder.txtArtistName.setText(song.getArtist());
 
-        // Format duration from milliseconds to mm:ss
         long durationMs = song.getDuration();
         String formattedDuration = formatDuration(durationMs);
         holder.txtDuration.setText(formattedDuration);
 
-        // Always show placeholder
         holder.imgSong.setVisibility(View.GONE);
         holder.txtPlaceholder.setVisibility(View.VISIBLE);
 
@@ -63,11 +60,19 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     }
 
     public void setSongs(List<Song> songs) {
-        this.songs = songs;
+        if (songs != null && songs.size() > 5) {
+            this.songs = new ArrayList<>(songs.subList(0, 5));
+        } else {
+            this.songs = songs != null ? new ArrayList<>(songs) : new ArrayList<>();
+        }
         notifyDataSetChanged();
     }
 
-    // Helper method to format duration from milliseconds to mm:ss
+    public void setAllSongs(List<Song> songs) {
+        this.songs = songs != null ? new ArrayList<>(songs) : new ArrayList<>();
+        notifyDataSetChanged();
+    }
+
     private String formatDuration(long durationMs) {
         long minutes = (durationMs / 1000) / 60;
         long seconds = (durationMs / 1000) % 60;

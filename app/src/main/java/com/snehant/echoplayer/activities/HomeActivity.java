@@ -1,10 +1,17 @@
 package com.snehant.echoplayer.activities;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,6 +30,8 @@ import com.snehant.echoplayer.player.PlaybackManager;
 import com.snehant.echoplayer.utils.PermissionHelper;
 import com.snehant.echoplayer.viewmodel.HomeViewModel;
 
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity
@@ -41,6 +50,8 @@ public class HomeActivity extends AppCompatActivity
     private ImageButton btnMiniNext;
     private PlaybackManager playbackManager;
     private List<Song> allSongs;
+    private EditText edtSearch;
+    private ImageView btnClearSearch;
 
     private View emptyState;
 
@@ -50,6 +61,14 @@ public class HomeActivity extends AppCompatActivity
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
 
+        Log.d(TAG, "=== ACTIVITY CREATED ===");
+
+        playbackManager = PlaybackManager.getInstance(this);
+
+        // Force a Toast to confirm the activity is running
+        Toast.makeText(this, "HomeActivity started!", Toast.LENGTH_SHORT).show();
+
+
         playbackManager = PlaybackManager.getInstance(this);
 
         initViews();
@@ -58,12 +77,19 @@ public class HomeActivity extends AppCompatActivity
         checkPermissionAndLoadSongs();
         setupMiniPlayerControls();
         setupPlaybackListener();
+        setupSearch();
+        setupPlaylistClick();
+        updateGreeting();
 
         // Update UI with current state
         updateMiniPlayer(playbackManager.getCurrentSong());
+
+        // Restore playback state
+        restorePlaybackState();
     }
 
     private void initViews() {
+        Log.d(TAG, "!!! initViews() is RUNNING !!!");
         try {
             recyclerSongs = findViewById(R.id.recyclerSongs);
             txtSongCount = findViewById(R.id.txtSongCount);
@@ -73,10 +99,109 @@ public class HomeActivity extends AppCompatActivity
             btnMiniPrevious = findViewById(R.id.btnMiniPrevious);
             btnMiniNext = findViewById(R.id.btnMiniNext);
             emptyState = findViewById(R.id.layoutEmptyState);
+            edtSearch = findViewById(R.id.edtSearch);
+            btnClearSearch = findViewById(R.id.btnClearSearch);
+
+            Log.d(TAG, "Basic views found - now looking for miniPlayerCard");
+
+            // TRY ALL POSSIBLE WAYS TO FIND THE MINIPLAYER CARD
+            View miniPlayerCard = null;
+
+            // Method 1: Direct find
+            miniPlayerCard = findViewById(R.id.miniPlayerCard);
+            if (miniPlayerCard != null) {
+                Log.d(TAG, "Method 1: Found miniPlayerCard directly!");
+            }
+
+            // Method 2: Through miniPlayer include
+            if (miniPlayerCard == null) {
+                View miniPlayerInclude = findViewById(R.id.miniPlayer);
+                if (miniPlayerInclude != null) {
+                    Log.d(TAG, "Found miniPlayer include, searching inside...");
+                    miniPlayerCard = miniPlayerInclude.findViewById(R.id.miniPlayerCard);
+                    if (miniPlayerCard != null) {
+                        Log.d(TAG, "Method 2: Found miniPlayerCard through include!");
+                    }
+                }
+            }
+
+            // Method 3: Through miniPlayerContainer
+            if (miniPlayerCard == null) {
+                View miniPlayerContainer = findViewById(R.id.miniPlayerContainer);
+                if (miniPlayerContainer != null) {
+                    Log.d(TAG, "Found miniPlayerContainer, searching inside...");
+                    miniPlayerCard = miniPlayerContainer.findViewById(R.id.miniPlayerCard);
+                    if (miniPlayerCard != null) {
+                        Log.d(TAG, "Method 3: Found miniPlayerCard through container!");
+                    }
+                }
+            }
+
+            // Method 4: Try to find by traversing the view tree
+            if (miniPlayerCard == null) {
+                Log.d(TAG, "Trying to find by traversing view tree...");
+                View rootView = findViewById(android.R.id.content);
+                miniPlayerCard = findViewWithTag(rootView, "miniPlayerCard");
+                if (miniPlayerCard != null) {
+                    Log.d(TAG, "Method 4: Found miniPlayerCard by traversing!");
+                }
+            }
+
+            if (miniPlayerCard != null) {
+                Log.d(TAG, "✅✅✅ SUCCESS! MiniPlayerCard FOUND! Setting click listener.");
+                miniPlayerCard.setOnClickListener(v -> {
+                    Log.d(TAG, "🎵🎵🎵 MINIPLAYER TAPPED! Opening NowPlaying");
+                    Intent intent = new Intent(HomeActivity.this, NowPlayingActivity.class);
+                    startActivity(intent);
+                });
+            } else {
+                Log.e(TAG, "❌❌❌ FAILED! MiniPlayerCard NOT found ANYWHERE!");
+            }
 
             Log.d(TAG, "Views initialized successfully");
         } catch (Exception e) {
             Log.e(TAG, "Error initializing views: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Helper method for Method 4
+    private View findViewWithTag(View view, String tag) {
+        if (view == null) return null;
+        if (view.getId() == R.id.miniPlayerCard) {
+            return view;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = findViewWithTag(group.getChildAt(i), tag);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private void setupPlaylistClick() {
+        View cardLocalMusic = findViewById(R.id.cardLocalMusic);
+        if (cardLocalMusic != null) {
+            cardLocalMusic.setOnClickListener(v -> {
+                Intent intent = new Intent(HomeActivity.this, PlaylistActivity.class);
+                startActivity(intent);
+            });
+        }
+    }
+
+    private void setupMiniPlayerClick() {
+        View miniPlayerCard = findViewById(R.id.miniPlayerCard);
+        if (miniPlayerCard != null) {
+            Log.d(TAG, "MiniPlayerCard found! Setting click listener");
+            miniPlayerCard.setOnClickListener(v -> {
+                Log.d(TAG, "MiniPlayer clicked! Opening NowPlaying");
+                Intent intent = new Intent(HomeActivity.this, NowPlayingActivity.class);
+                startActivity(intent);
+            });
+        } else {
+            Log.e(TAG, "MiniPlayerCard NOT found! Check layout ID");
         }
     }
 
@@ -87,6 +212,34 @@ public class HomeActivity extends AppCompatActivity
                 runOnUiThread(() -> {
                     Log.d(TAG, "onSongChanged callback received: " + (song != null ? song.getTitle() : "null"));
                     updateMiniPlayer(song);
+                    savePlaybackState();
+                });
+            }
+
+            @Override
+            public void onPlayStateChanged(boolean isPlaying) {
+                runOnUiThread(() -> {
+                    Log.d(TAG, "onPlayStateChanged: " + isPlaying);
+                    if (isPlaying) {
+                        btnMiniPlay.setImageResource(android.R.drawable.ic_media_pause);
+                    } else {
+                        btnMiniPlay.setImageResource(android.R.drawable.ic_media_play);
+                    }
+                    savePlaybackState();
+                });
+            }
+
+            @Override
+            public void onShuffleChanged(boolean isShuffle) {
+                runOnUiThread(() -> {
+                    Log.d(TAG, "onShuffleChanged: " + isShuffle);
+                });
+            }
+
+            @Override
+            public void onRepeatChanged(int repeatMode) {
+                runOnUiThread(() -> {
+                    Log.d(TAG, "onRepeatChanged: " + repeatMode);
                 });
             }
         });
@@ -189,6 +342,12 @@ public class HomeActivity extends AppCompatActivity
                         txtSongCount.setText(songs.size() + " Songs");
                     }
 
+                    // Update playlist count
+                    TextView txtPlaylistCount = findViewById(R.id.txtPlaylistCount);
+                    if (txtPlaylistCount != null) {
+                        txtPlaylistCount.setText(songs.size() + " songs");
+                    }
+
                     // Hide empty state when songs are available
                     if (emptyState != null) {
                         if (songs.isEmpty()) {
@@ -199,6 +358,9 @@ public class HomeActivity extends AppCompatActivity
                     }
 
                     Log.d(TAG, "Songs loaded: " + songs.size());
+
+                    // Restore playback state after songs are loaded
+                    restorePlaybackState();
                 } catch (Exception e) {
                     Log.e(TAG, "Error updating UI with songs: " + e.getMessage());
                 }
@@ -264,11 +426,137 @@ public class HomeActivity extends AppCompatActivity
     protected void onDestroy() {
         super.onDestroy();
         try {
+            // Save state before destroying
+            savePlaybackState();
             // Release resources when activity is destroyed
             playbackManager.release();
             Log.d(TAG, "PlaybackManager released");
         } catch (Exception e) {
             Log.e(TAG, "Error releasing PlaybackManager: " + e.getMessage());
         }
+    }
+
+    private void updateGreeting() {
+        Calendar calendar = Calendar.getInstance();
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        String greeting;
+
+        if (hour >= 5 && hour < 12) {
+            greeting = "☀️ Good Morning";
+        } else if (hour >= 12 && hour < 17) {
+            greeting = "🌤️ Good Afternoon";
+        } else if (hour >= 17 && hour < 21) {
+            greeting = "🌅 Good Evening";
+        } else {
+            greeting = "🌙 Good Night";
+        }
+
+        TextView txtGreeting = findViewById(R.id.txtGreeting);
+        if (txtGreeting != null) {
+            txtGreeting.setText(greeting);
+        }
+    }
+
+    private void setupSearch() {
+        edtSearch = findViewById(R.id.edtSearch);
+        btnClearSearch = findViewById(R.id.btnClearSearch);
+
+        edtSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterSongs(s.toString());
+                btnClearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        btnClearSearch.setOnClickListener(v -> {
+            edtSearch.setText("");
+            btnClearSearch.setVisibility(View.GONE);
+            // Reset to show all songs (first 5)
+            if (allSongs != null) {
+                if (allSongs.size() > 5) {
+                    adapter.setSongs(new ArrayList<>(allSongs.subList(0, 5)));
+                } else {
+                    adapter.setSongs(allSongs);
+                }
+            }
+        });
+    }
+
+    private void filterSongs(String query) {
+        if (allSongs == null) return;
+
+        if (query.isEmpty()) {
+            // Show first 5 songs when search is empty
+            if (allSongs.size() > 5) {
+                adapter.setSongs(new ArrayList<>(allSongs.subList(0, 5)));
+            } else {
+                adapter.setSongs(allSongs);
+            }
+            return;
+        }
+
+        List<Song> filtered = new ArrayList<>();
+        for (Song song : allSongs) {
+            if (song.getTitle().toLowerCase().contains(query.toLowerCase()) ||
+                    song.getArtist().toLowerCase().contains(query.toLowerCase()) ||
+                    song.getAlbum().toLowerCase().contains(query.toLowerCase())) {
+                filtered.add(song);
+            }
+        }
+
+        // Show only 5 filtered results
+        if (filtered.size() > 5) {
+            adapter.setSongs(new ArrayList<>(filtered.subList(0, 5)));
+        } else {
+            adapter.setSongs(filtered);
+        }
+    }
+
+    private void savePlaybackState() {
+        SharedPreferences prefs = getSharedPreferences("playback", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        Song currentSong = playbackManager.getCurrentSong();
+        if (currentSong != null) {
+            editor.putLong("song_id", currentSong.getId());
+            editor.putInt("position", playbackManager.getCurrentPosition());
+            editor.putBoolean("is_playing", playbackManager.isPlaying());
+            editor.apply();
+            Log.d(TAG, "Playback state saved");
+        }
+    }
+
+    private void restorePlaybackState() {
+        SharedPreferences prefs = getSharedPreferences("playback", MODE_PRIVATE);
+        long songId = prefs.getLong("song_id", -1);
+        int position = prefs.getInt("position", 0);
+        boolean isPlaying = prefs.getBoolean("is_playing", false);
+
+        if (songId != -1 && allSongs != null) {
+            for (Song song : allSongs) {
+                if (song.getId() == songId) {
+                    Log.d(TAG, "Restoring playback state for: " + song.getTitle());
+                    playbackManager.play(song);
+                    playbackManager.seekTo(position);
+                    if (!isPlaying) {
+                        playbackManager.pause();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    public void onMiniPlayerClick(View view) {
+        Log.d(TAG, "🎵🎵🎵 onMiniPlayerClick called from XML!");
+        Intent intent = new Intent(HomeActivity.this, NowPlayingActivity.class);
+        startActivity(intent);
     }
 }
