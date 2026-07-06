@@ -1,20 +1,22 @@
 package com.snehant.echoplayer.models;
 
+import java.util.Objects;
+
 public class Song {
 
-    private long id;
-    private String title;
-    private String artist;
-    private String album;
-    private String path;
-    private long duration;
-    private long albumId;
+    private final long id;
+    private final String title;
+    private final String artist;
+    private final String album;
+    private final String mediaUri;
+    private final long duration;
+    private final long albumId;
 
     public Song(long id,
                 String title,
                 String artist,
                 String album,
-                String path,
+                String mediaUri,
                 long duration,
                 long albumId) {
 
@@ -22,7 +24,7 @@ public class Song {
         this.title = title;
         this.artist = artist;
         this.album = album;
-        this.path = path;
+        this.mediaUri = mediaUri;
         this.duration = duration;
         this.albumId = albumId;
     }
@@ -43,8 +45,8 @@ public class Song {
         return album;
     }
 
-    public String getPath() {
-        return path;
+    public String getMediaUri() {
+        return mediaUri;
     }
 
     public long getDuration() {
@@ -53,5 +55,19 @@ public class Song {
 
     public long getAlbumId() {
         return albumId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Song song = (Song) o;
+        return id == song.id &&
+                Objects.equals(mediaUri, song.mediaUri);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, mediaUri);
     }
 }

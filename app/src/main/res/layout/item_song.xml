@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="86dp"
-    android:layout_marginBottom="12dp"
+    android:layout_height="72dp"
+    android:layout_marginTop="12dp"
     app:cardBackgroundColor="@color/card"
-    app:cardCornerRadius="20dp"
+    app:cardCornerRadius="16dp"
     app:cardElevation="0dp">
 
     <LinearLayout
@@ -15,14 +14,30 @@
         android:layout_height="match_parent"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="14dp">
+        android:padding="12dp">
 
-        <ImageView
-            android:id="@+id/imgSong"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:background="@color/search_background"
-            android:scaleType="centerCrop"/>
+        <FrameLayout
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@color/search_background">
+
+            <ImageView
+                android:id="@+id/imgSong"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"/>
+
+            <TextView
+                android:id="@+id/txtPlaceholder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="♪"
+                android:textColor="@color/text_secondary"
+                android:textSize="20sp"
+                android:visibility="gone"/>
+
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -35,19 +50,19 @@
                 android:id="@+id/txtSongTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Believer"
+                android:text="Song Title"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:maxLines="1"/>
 
             <TextView
                 android:id="@+id/txtArtistName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Imagine Dragons"
+                android:text="Artist Name"
                 android:textColor="@color/text_secondary"
-                android:textSize="13sp"/>
+                android:textSize="12sp"/>
 
         </LinearLayout>
 
@@ -61,14 +76,14 @@
                 android:id="@+id/txtDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="3:42"
+                android:text="0:00"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"/>
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginTop="8dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginTop="4dp"
                 android:src="@android:drawable/ic_menu_more"
                 android:tint="@color/text_secondary"/>
 

@@ -37,8 +37,9 @@ public class HomeViewModel extends AndroidViewModel {
 
         executorService.execute(() -> {
 
-            List<Song> songs =
-                    repository.getAllSongs(getApplication());
+            List<Song> songs = repository.getAllSongs(getApplication());
+
+            System.out.println("Songs Found = " + songs.size());
 
             songsLiveData.postValue(songs);
 

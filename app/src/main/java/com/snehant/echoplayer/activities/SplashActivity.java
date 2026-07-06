@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
+import com.snehant.echoplayer.activities.HomeActivity;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;

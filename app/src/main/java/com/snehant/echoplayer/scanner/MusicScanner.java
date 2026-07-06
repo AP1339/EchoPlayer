@@ -1,7 +1,9 @@
 package com.snehant.echoplayer.scanner;
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 
 import com.snehant.echoplayer.models.Song;
@@ -15,12 +17,21 @@ public class MusicScanner {
 
         List<Song> songList = new ArrayList<>();
 
+        String[] projection = {
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.ALBUM_ID
+        };
+
         Cursor cursor = context.getContentResolver().query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection,
                 null,
-                MediaStore.Audio.Media.IS_MUSIC + "!=0",
                 null,
-                MediaStore.Audio.Media.TITLE + " ASC"
+                MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC"
         );
 
         if (cursor != null) {
@@ -29,24 +40,27 @@ public class MusicScanner {
             int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
             int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
             int albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
-            int pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
             int durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
             int albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID);
 
             while (cursor.moveToNext()) {
 
-                songList.add(
-                        new Song(
-                                cursor.getLong(idColumn),
-                                cursor.getString(titleColumn),
-                                cursor.getString(artistColumn),
-                                cursor.getString(albumColumn),
-                                cursor.getString(pathColumn),
-                                cursor.getLong(durationColumn),
-                                cursor.getLong(albumIdColumn)
-                        )
+                long id = cursor.getLong(idColumn);
+
+                Uri uri = ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        id
                 );
 
+                songList.add(new Song(
+                        id,
+                        cursor.getString(titleColumn),
+                        cursor.getString(artistColumn),
+                        cursor.getString(albumColumn),
+                        uri.toString(),
+                        cursor.getLong(durationColumn),
+                        cursor.getLong(albumIdColumn)
+                ));
             }
 
             cursor.close();
@@ -54,5 +68,4 @@ public class MusicScanner {
 
         return songList;
     }
-
 }
